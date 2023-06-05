@@ -95,8 +95,15 @@ Ingresar con las credenciales del superusuario creado
 
 
 ### Requerimientos
+
+#### En requirements.txt reemplazar:
 ```sh
-pip install mysqlclient
+psycopg2
+```
+#### por
+```sh
+mysqlclient
+django-mysql
 ```
 
 ### ORM en Django
@@ -142,17 +149,13 @@ environment:
     - MYSQL_HOST=db
 ```
 
-#### En requirements.txt reemplazar:
-```sh
-psycopg2
-```
-#### por
-```sh
-mysqlclient
-django-mysql
-```
+
 # Django Ejemplo
 
+## Iniciar una app de ejemplo: cursos
+```sh
+python manage.py startapp cursos
+```
 
 ## Agregar a INSTALLED_APPS
 
@@ -166,17 +169,18 @@ django-mysql
 from django.db import models
 
 class Alumno(models.Model):
-    dni = models.ImageField(primary_key=True)  
+    dni = models.CharField(primary_key=True, max_length=30)  
     nombre = models.CharField(max_length=30)  
     apellido = models.CharField(max_length=30)  
     telefono = models.CharField(max_length=30)
     email = models.EmailField()
 
 class Materia(models.Model):
-    id_materia = models.ImageField(primary_key=True)  
+    id_materia = models.IntegerField(primary_key=True)  
     nombre = models.CharField(max_length=30)  
     descripcion = models.CharField(max_length=255)  
     anio = models.IntegerField()
+    alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE, default=None)
 ```
 
 ## Admin site
