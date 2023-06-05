@@ -198,3 +198,9 @@ class MateriaAdmin(admin.ModelAdmin):
 admin.site.register(Alumno, AlumnoAdmin)
 admin.site.register(Materia, MateriaAdmin)
 ```
+
+### Crear y Correr las migraciones de Django para los nuevos modelos
+```sh
+docker exec -it <id contenedor web> python manage.py makemigrations
+docker exec -it <id contenedor web> python manage.py migrate
+```
