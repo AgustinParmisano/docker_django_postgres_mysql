@@ -1,0 +1,15 @@
+project_name: nombreProyecto
+app_name: nombreApp
+clases:
+  NombreClase1:
+    campo1: 'CharField(primary_key=True, max_length=30)'
+    campo2: 'CharField(max_length=30)'
+    campo3: 'CharField(max_length=30)'
+    campo4: 'CharField(max_length=30)'
+    campo5: 'EmailField()'
+  NombreClase2:
+    campo1: 'IntegerField(primary_key=True)'
+    campo2: 'CharField(max_length=30)'
+    campo3: 'CharField(max_length=255)'
+    campo4: 'IntegerField()'
+    campo5: 'ForeignKey(NombreClase1, on_delete=models.CASCADE, default=None)'

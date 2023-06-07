@@ -4,7 +4,15 @@
 ```sh
 $ docker-compose build
 ```
-## Confgiurar Django
+
+## Autocreacion BETA:
+Configure las clases que desee crear en config.yml como muestra el ejemplo y ejecute:
+```sh
+$ docker-compose up
+```
+---
+
+## Configurar Django manualmente
 
 ### 1. Crear el sistema en el contenedor Web
 ```sh

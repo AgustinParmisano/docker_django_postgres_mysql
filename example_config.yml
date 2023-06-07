@@ -1,0 +1,15 @@
+project_name: instituto
+app_name: academico
+clases:
+  Alumno:
+    dni: 'IntegerField(primary_key=True)'
+    nombre: 'CharField(max_length=30)'
+    apellido: 'CharField(max_length=30)'
+    telefono: 'CharField(max_length=30)'
+    email: 'EmailField()'
+  Materia:
+    id_materia: 'IntegerField(primary_key=True)'
+    nombre: 'CharField(max_length=30)'
+    descripcion: 'CharField(max_length=255)'
+    anio: 'IntegerField()'
+    alumno: 'ForeignKey(Alumno, on_delete=models.CASCADE, default=None)'
