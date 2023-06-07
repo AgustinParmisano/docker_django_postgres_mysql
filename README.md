@@ -14,6 +14,12 @@ $ docker-compose up
 
 ## Configurar Django manualmente
 
+### 0. Deshabilitar autocreacion
+En el archivo Dockerfile comente la ultima linea de la siguiente manera:
+```sh
+#ENTRYPOINT ["bash", "docker-entrypoint.sh"]
+```
+
 ### 1. Crear el sistema en el contenedor Web
 ```sh
 docker-compose run web django-admin startproject <nombre_sistema> .  
