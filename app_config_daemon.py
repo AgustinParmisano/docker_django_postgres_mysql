@@ -14,6 +14,36 @@ def generate_model_code(class_name, attributes):
         code += f'    {attr} = models.{attr_type}\n'
     return code
 
+
+def inject_serializer_class_name(serializers_file, class_name):
+    with open(serializers_file, 'a') as file:
+        file.write(f"\n\nclass {class_name}Serializer(serializers.ModelSerializer):\n")
+        file.write("    class Meta:\n")
+        file.write(f"        model = {class_name}\n")
+        file.write("        fields = '__all__'\n")
+
+
+def inject_view_class_name(views_file, class_name):
+    with open(views_file, 'a') as file:
+        file.write(f"\n\nclass {class_name}ListCreateAPIView(generics.ListCreateAPIView):\n")
+        file.write("    queryset = ")
+        file.write(f"{class_name}.objects.all()\n")
+        file.write(f"    serializer_class = {class_name}Serializer\n\n")
+        file.write(f"class {class_name}RetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):\n")
+        file.write("    queryset = ")
+        file.write(f"{class_name}.objects.all()\n")
+        file.write(f"    serializer_class = {class_name}Serializer\n")
+
+
+def inject_url_class_name(urls_file, class_name):
+    with open(urls_file, 'a') as file:
+        file.write(f"\nfrom .views import {class_name}ListCreateAPIView, {class_name}RetrieveUpdateDestroyAPIView\n")
+        file.write(f"\nurlpatterns = [\n")
+        file.write(f"    path('{class_name.lower()}s/', {class_name}ListCreateAPIView.as_view(), name='{class_name.lower()}-list'),\n")
+        file.write(f"    path('{class_name.lower()}s/<str:pk>/', {class_name}RetrieveUpdateDestroyAPIView.as_view(), name='{class_name.lower()}-detail'),\n")
+        file.write(f"]\n")
+
+
 def inject_code(project_name,app_name,classes):
     # Ruta al archivo settings.py
     settings_path = project_name + '/settings.py'
@@ -28,15 +58,29 @@ def inject_code(project_name,app_name,classes):
             f.write(line)
             if line.startswith('INSTALLED_APPS = ['):
                 f.write(f"    '{app_settings_name}',\n")
+                f.write(f"    '{'rest_framework'}',\n")
 
     models_path = f'{app_name}/models.py'
 
     with open(models_path, 'w') as f:
         f.write('from django.db import models\n\n')
         for class_name, attributes in classes.items():
+            # Inyectar en models.py
             model_code = generate_model_code(class_name, attributes)
             f.write(model_code)
             f.write('\n')
+
+            # Inyectar en serializers.py
+            serializers_file = f'{app_name}/serializers.py'  # Ruta al archivo serializers.py
+            inject_serializer_class_name(serializers_file, class_name)
+
+            # Inyectar en views.py
+            views_file = f'{app_name}/views.py'  # Ruta al archivo views.py
+            inject_view_class_name(views_file, class_name)
+
+            # Inyectar en urls.py
+            urls_file = f'{app_name}/urls.py'  # Ruta al archivo urls.py
+            inject_url_class_name(urls_file, class_name)
 
 
     # Crear los modelos del admin site
