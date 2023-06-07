@@ -1,6 +1,3 @@
 .data/
-cursos/
-instituto/
-academico/
 manage.py
 db.sqlite3
