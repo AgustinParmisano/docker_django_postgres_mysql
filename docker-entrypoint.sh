@@ -9,8 +9,6 @@ django-admin startproject $PROJECT_NAME .
 # Ejecuta las migraciones iniciales del proyecto
 python manage.py migrate
 
-python manage.py 
-
 # Ejecuta el demonio para crear la app y las clases de la misma según lo configurado en config.yml
 python app_config_daemon.py
 

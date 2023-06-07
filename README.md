@@ -10,6 +10,12 @@ Configure las clases que desee crear en config.yml como muestra el ejemplo y eje
 ```sh
 $ docker-compose up
 ```
+Ingrese a http://localhost:8000/admin
+
+Usuario: admin
+
+Password: password
+
 ---
 
 ## Configurar Django manualmente
