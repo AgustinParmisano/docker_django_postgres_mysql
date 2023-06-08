@@ -16,16 +16,32 @@ def generate_model_code(class_name, attributes):
     return code
 
 
+def inject_app_serializers_imports(views_file):
+    with open(views_file, 'w') as file:
+        file.write(f"from rest_framework import serializers\n")
+
+
 def inject_serializer_class_name(serializers_file, class_name):
     with open(serializers_file, 'a') as file:
+        file.write(f"from .models import {class_name}\n")
         file.write(f"\n\nclass {class_name}Serializer(serializers.ModelSerializer):\n")
         file.write("    class Meta:\n")
         file.write(f"        model = {class_name}\n")
         file.write("        fields = '__all__'\n")
 
 
+def inject_app_views_imports(views_file):
+    with open(views_file, 'w') as file:
+        lines = file.readlines()
+        for line in lines:
+            if line.startswith('from django.shortcuts import render'):
+                file.write(f"from rest_framework import generics\n")
+
+
 def inject_view_class_name(views_file, class_name):
     with open(views_file, 'a') as file:
+        file.write(f"from .models import {class_name}\n")
+        file.write(f"from .serializers import {class_name}Serializer\n")
         file.write(f"\n\nclass {class_name}ListCreateAPIView(generics.ListCreateAPIView):\n")
         file.write("    queryset = ")
         file.write(f"{class_name}.objects.all()\n")
@@ -36,14 +52,50 @@ def inject_view_class_name(views_file, class_name):
         file.write(f"    serializer_class = {class_name}Serializer\n")
 
 
-def inject_url_class_name(urls_file, class_name):
+def inject_project_url_imports(urls_file, app_name):
+    with open(urls_file, 'a') as file:
+        lines = file.readlines()
+        for line in lines:
+            if line.startswith('from django.contrib import path'):
+                file.write(line.replace(f"\nfrom django.urls import path", "f\nfrom django.urls import path, include\n"))
+                file.write(f"from rest_framework import permissions\n")
+                file.write(f"from drf_yasg.views import get_schema_view\n")
+                file.write(f"from drf_yasg import openapi\n")
+                
+        code_to_inject = '''schema_view = get_schema_view(
+                            openapi.Info(
+                                title="API Documentation",
+                                default_version='v1',
+                                description="API documentation for your project",
+                                terms_of_service="https://www.example.com/terms/",
+                                contact=openapi.Contact(email="contact@example.com"),
+                                license=openapi.License(name="BSD License"),
+                            ),
+                            public=True,
+                            permission_classes=(permissions.AllowAny,),
+                        )
+
+                        urlpatterns = [
+                            path('admin/', admin.site.urls),
+                            path('{}/', include('{}.urls')),
+                            path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+                            path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+                        ]'''.format(app_name)
+                        
+        file.write(code_to_inject)
+
+
+def inject_url_class_imports(urls_file, class_name):
     with open(urls_file, 'a') as file:
         file.write(f"\nfrom .views import {class_name}ListCreateAPIView, {class_name}RetrieveUpdateDestroyAPIView\n")
+
+
+def inject_url_class_name(urls_file, class_name):
+    with open(urls_file, 'a') as file:
         file.write(f"\nurlpatterns = [\n")
         file.write(f"    path('{class_name.lower()}s/', {class_name}ListCreateAPIView.as_view(), name='{class_name.lower()}-list'),\n")
         file.write(f"    path('{class_name.lower()}s/<str:pk>/', {class_name}RetrieveUpdateDestroyAPIView.as_view(), name='{class_name.lower()}-detail'),\n")
         file.write(f"]\n")
-
 
 def inject_code(project_name,app_name,classes):
     # Ruta al archivo settings.py
@@ -60,8 +112,13 @@ def inject_code(project_name,app_name,classes):
             if line.startswith('INSTALLED_APPS = ['):
                 f.write(f"    '{app_settings_name}',\n")
                 f.write(f"    '{'rest_framework'}',\n")
+                f.write(f"    '{'drf_yasg'}',\n")
+
 
     models_path = f'{app_name}/models.py'
+
+    project_urls_file = f'{project_name}/urls.py'  # Ruta al archivo urls.py del projecto
+    inject_project_url_imports(project_urls_file, app_name)
 
     with open(models_path, 'w') as f:
         f.write('from django.db import models\n\n')
@@ -73,14 +130,17 @@ def inject_code(project_name,app_name,classes):
 
             # Inyectar en serializers.py
             serializers_file = f'{app_name}/serializers.py'  # Ruta al archivo serializers.py
+            inject_app_serializers_imports(views_file)
             inject_serializer_class_name(serializers_file, class_name)
 
             # Inyectar en views.py
             views_file = f'{app_name}/views.py'  # Ruta al archivo views.py
+            inject_app_views_imports(views_file)
             inject_view_class_name(views_file, class_name)
 
             # Inyectar en urls.py
             urls_file = f'{app_name}/urls.py'  # Ruta al archivo urls.py
+            inject_url_class_imports(urls_file, class_name)
             inject_url_class_name(urls_file, class_name)
 
 
@@ -108,14 +168,14 @@ def crear_estructuras_desde_yaml(archivo):
     # Lee el archivo YAML y obtén los datos como diccionario
     datos = leer_archivo_yml(archivo)
 
-    # Obtiene el nombre del proyecto y el nombre de la app
+    # Obtiene el nombre del projecto y el nombre de la app
     project_name = datos['project_name']
     app_name = datos['app_name']
 
     # Obtiene las clases y crea las estructuras de control correspondientes
     clases = datos['clases']
 
-    print("[SUCCESS] Nombre del proyecto:", project_name)
+    print("[SUCCESS] Nombre del projecto:", project_name)
     print("[SUCCESS] Nombre de la app creada:", app_name)
     print("[SUCCESS] Clases Creadas")
     for clase in clases:
