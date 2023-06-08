@@ -6,4 +6,4 @@ mysqlclient
 django-mysql
 djangorestframework
 drf-yasg
-yaml
+yq
