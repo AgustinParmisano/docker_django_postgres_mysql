@@ -22,6 +22,7 @@ def inject_app_serializers_imports(views_file):
 
 
 def inject_serializer_class_name(serializers_file, class_name):
+    print("inject_serializer_class_name", class_name)
     with open(serializers_file, 'a') as file:
         file.write(f"from .models import {class_name}\n")
         file.write(f"\n\nclass {class_name}Serializer(serializers.ModelSerializer):\n")
@@ -31,7 +32,7 @@ def inject_serializer_class_name(serializers_file, class_name):
 
 
 def inject_app_views_imports(views_file):
-    with open(views_file, 'w') as file:
+    with open(views_file, 'r+') as file:
         lines = file.readlines()
         for line in lines:
             if line.startswith('from django.shortcuts import render'):
@@ -49,38 +50,36 @@ def inject_view_class_name(views_file, class_name):
         file.write(f"class {class_name}RetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):\n")
         file.write("    queryset = ")
         file.write(f"{class_name}.objects.all()\n")
-        file.write(f"    serializer_class = {class_name}Serializer\n")
+        file.write(f"    serializer_class = {class_name}Serializer\n\n")
 
 
 def inject_project_url_imports(urls_file, app_name):
-    with open(urls_file, 'a') as file:
-        lines = file.readlines()
-        for line in lines:
-            if line.startswith('from django.contrib import path'):
-                file.write(line.replace(f"\nfrom django.urls import path", "f\nfrom django.urls import path, include\n"))
-                file.write(f"from rest_framework import permissions\n")
-                file.write(f"from drf_yasg.views import get_schema_view\n")
-                file.write(f"from drf_yasg import openapi\n")
+    with open(urls_file, 'w') as file:
+        file.write("from django.contrib import admin\n")
+        file.write("from django.urls import path, include\n")
+        file.write("from rest_framework import permissions\n")
+        file.write("from drf_yasg.views import get_schema_view\n")
+        file.write("from drf_yasg import openapi\n\n")
                 
         code_to_inject = '''schema_view = get_schema_view(
-                            openapi.Info(
-                                title="API Documentation",
-                                default_version='v1',
-                                description="API documentation for your project",
-                                terms_of_service="https://www.example.com/terms/",
-                                contact=openapi.Contact(email="contact@example.com"),
-                                license=openapi.License(name="BSD License"),
-                            ),
-                            public=True,
-                            permission_classes=(permissions.AllowAny,),
-                        )
+    openapi.Info(
+        title="API Documentation",
+        default_version='v1',
+        description="API documentation for your project",
+        terms_of_service="https://www.example.com/terms/",
+        contact=openapi.Contact(email="contact@example.com"),
+        license=openapi.License(name="BSD License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
 
-                        urlpatterns = [
-                            path('admin/', admin.site.urls),
-                            path('{}/', include('{}.urls')),
-                            path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-                            path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-                        ]'''.format(app_name)
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('{appname}/', include('{appname}.urls')),
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+]'''.format(appname=app_name)
                         
         file.write(code_to_inject)
 
@@ -88,14 +87,14 @@ def inject_project_url_imports(urls_file, app_name):
 def inject_url_class_imports(urls_file, class_name):
     with open(urls_file, 'a') as file:
         file.write(f"\nfrom .views import {class_name}ListCreateAPIView, {class_name}RetrieveUpdateDestroyAPIView\n")
-
+        file.write(f"\nurlpatterns = []\n")
+        
 
 def inject_url_class_name(urls_file, class_name):
     with open(urls_file, 'a') as file:
-        file.write(f"\nurlpatterns = [\n")
-        file.write(f"    path('{class_name.lower()}s/', {class_name}ListCreateAPIView.as_view(), name='{class_name.lower()}-list'),\n")
-        file.write(f"    path('{class_name.lower()}s/<str:pk>/', {class_name}RetrieveUpdateDestroyAPIView.as_view(), name='{class_name.lower()}-detail'),\n")
-        file.write(f"]\n")
+        file.write(f"\nurlpatterns.append(path('{class_name.lower()}s/', {class_name}ListCreateAPIView.as_view(), name='{class_name.lower()}-list'))")
+        file.write(f"\nurlpatterns.append(path('{class_name.lower()}s/<str:pk>/', {class_name}RetrieveUpdateDestroyAPIView.as_view(), name='{class_name.lower()}-detail'))")
+
 
 def inject_code(project_name,app_name,classes):
     # Ruta al archivo settings.py
@@ -119,6 +118,16 @@ def inject_code(project_name,app_name,classes):
 
     project_urls_file = f'{project_name}/urls.py'  # Ruta al archivo urls.py del projecto
     inject_project_url_imports(project_urls_file, app_name)
+    
+    views_file = f'{app_name}/views.py'  # Ruta al archivo views.py
+    inject_app_views_imports(views_file)
+
+    serializers_file = f'{app_name}/serializers.py'  # Ruta al archivo serializers.py
+    inject_app_serializers_imports(serializers_file)
+
+    urls_file = f'{app_name}/urls.py'  # Ruta al archivo urls.py
+    with open(urls_file, 'a') as file:
+        file.write("from django.urls import path\n")
 
     with open(models_path, 'w') as f:
         f.write('from django.db import models\n\n')
@@ -130,12 +139,10 @@ def inject_code(project_name,app_name,classes):
 
             # Inyectar en serializers.py
             serializers_file = f'{app_name}/serializers.py'  # Ruta al archivo serializers.py
-            inject_app_serializers_imports(views_file)
             inject_serializer_class_name(serializers_file, class_name)
 
             # Inyectar en views.py
             views_file = f'{app_name}/views.py'  # Ruta al archivo views.py
-            inject_app_views_imports(views_file)
             inject_view_class_name(views_file, class_name)
 
             # Inyectar en urls.py
@@ -233,4 +240,4 @@ try:
     only_migrations()
 
 except Exception as e:
-    raise(e)
+    print(e)
