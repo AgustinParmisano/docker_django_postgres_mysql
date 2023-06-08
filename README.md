@@ -21,9 +21,9 @@ Password: password
 ## Configurar Django manualmente
 
 ### 0. Deshabilitar autocreacion
-En el archivo Dockerfile comente la ultima linea de la siguiente manera:
+En el archivo Dockerfile envie el argumento 0 al script en el entrypoint de la siguiente manera:
 ```sh
-#ENTRYPOINT ["bash", "docker-entrypoint.sh"]
+#ENTRYPOINT ["bash", "docker-entrypoint.sh", "0"]
 ```
 
 ### 1. Crear el sistema en el contenedor Web

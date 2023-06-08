@@ -10,7 +10,7 @@ django-admin startproject $PROJECT_NAME .
 python manage.py migrate
 
 # Ejecuta el demonio para crear la app y las clases de la misma según lo configurado en config.yml
-python app_config_daemon.py
+python app_config_daemon.py $1
 
 export DJANGO_SUPERUSER_EMAIL=admin@admin.com
 export DJANGO_SUPERUSER_PASSWORD=password

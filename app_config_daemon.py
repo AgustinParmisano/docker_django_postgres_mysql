@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 import time
 import yaml
@@ -124,8 +125,9 @@ def crear_estructuras_desde_yaml(archivo):
     
     return result
 
-
-# Llama a la función y pasa el nombre del archivo YAML como argumento
+def only_migrations():
+    subprocess.run(['python', 'manage.py', 'makemigrations'])
+    subprocess.run(['python', 'manage.py', 'migrate'])
 
 # Ejemplo de uso
 '''
@@ -150,6 +152,7 @@ class2 = {'Materia': {
 classes = {**class1, **class2}
 '''
 
+# Llama a la función y pasa el nombre del archivo YAML como argumento
 data = crear_estructuras_desde_yaml('config.yml')
 
 project_name = data["project_name"]
@@ -157,16 +160,17 @@ app_name = data["app_name"]
 classes = data["clases"]
 
 try:
-    if os.path.isdir(app_name):
-        print("[INFO] Se ignora la creacion de la app, ya existe:", app_name)
-        pass
-    else:
-        create_app(app_name)
-        time.sleep(2)
-        inject_code(project_name, app_name, classes)
-        time.sleep(2)
-        # Ejecutar las migraciones
-    subprocess.run(['python', 'manage.py', 'makemigrations'])
-    subprocess.run(['python', 'manage.py', 'migrate'])
+    if str(sys.argv[1]) == "1":
+        if os.path.isdir(app_name):
+            print("[INFO] Se ignora la creacion de la app, ya existe:", app_name)
+            pass
+        else:
+            create_app(app_name)
+            time.sleep(2)
+            inject_code(project_name, app_name, classes)
+            time.sleep(2)
+            # Ejecutar las migraciones
+    only_migrations()
+
 except Exception as e:
     raise(e)
