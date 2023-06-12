@@ -87,7 +87,6 @@ urlpatterns = [
 def inject_url_class_imports(urls_file, class_name):
     with open(urls_file, 'a') as file:
         file.write(f"\nfrom .views import {class_name}ListCreateAPIView, {class_name}RetrieveUpdateDestroyAPIView\n")
-        file.write(f"\nurlpatterns = []\n")
         
 
 def inject_url_class_name(urls_file, class_name):
@@ -128,6 +127,7 @@ def inject_code(project_name,app_name,classes):
     urls_file = f'{app_name}/urls.py'  # Ruta al archivo urls.py
     with open(urls_file, 'a') as file:
         file.write("from django.urls import path\n")
+        file.write(f"\nurlpatterns = []\n")
 
     with open(models_path, 'w') as f:
         f.write('from django.db import models\n\n')
