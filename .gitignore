@@ -4,3 +4,4 @@ instituto/
 academico/
 manage.py
 db.sqlite3
+config.yml
