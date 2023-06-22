@@ -5,7 +5,7 @@
 $ docker-compose build
 ```
 
-## Autocreacion BETA:
+## Autocreacion:
 Configure las clases que desee crear en config.yml como muestra el ejemplo y ejecute:
 ```sh
 $ docker-compose up
@@ -15,6 +15,14 @@ Ingrese a http://localhost:8000/admin
 Usuario: admin
 
 Password: password
+
+Puede utilizar Swagger para probar la API REST:
+
+Ingrese a http://localhost:8000/swagger
+
+Puede visualizar la documentación de la API REST con Redoc:
+
+Ingrese a http://localhost:8000/redoc
 
 ---
 
