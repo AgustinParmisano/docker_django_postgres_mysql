@@ -9,4 +9,4 @@ COPY docker-entrypoint.sh .
 #RUN apt-get install libsasl2-dev python-dev libldap2-dev libssl-dev -y
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
-ENTRYPOINT ["bash", "docker-entrypoint.sh","0"]
+ENTRYPOINT ["bash", "docker-entrypoint.sh","1"]

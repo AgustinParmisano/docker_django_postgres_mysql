@@ -30,7 +30,7 @@ def inject_serializer_class_name(serializers_file, class_name):
         file.write(f"        model = {class_name}\n")
         file.write("        fields = '__all__'\n")
 
-def inject_view_class_name_imports(views_file, class_name):
+def  inject_view_class_name_imports(views_file, class_name):
     with open(views_file, 'a') as file:
         file.write(f"from .models import {class_name}\n")
         file.write(f"from .serializers import {class_name}Serializer\n")
@@ -40,8 +40,8 @@ def inject_app_views_imports(views_file):
         lines = file.readlines()
         for line in lines:
             if line.startswith('from django.shortcuts import render'):
-                file.write("from rest_framework import viewsets\n")
-                file.write("from drf_spectacular.utils import extend_schema, extend_schema_view\n")
+                file.write("from rest_framework import viewsets\n\n")
+                file.write("from drf_spectacular.utils import extend_schema, extend_schema_view\n\n")
                 file.write("@extend_schema_view(\n")
                 file.write('    list=extend_schema(description="list"),\n')
                 file.write('    retrieve=extend_schema(description="retrieve"),\n')
@@ -62,7 +62,7 @@ def inject_view_class_viewsets(views_file, class_name):
 def inject_project_url_imports(urls_file, app_name):
     with open(urls_file, 'w') as file:
         file.write("from django.contrib import admin\n")      
-        file.write("from django.urls import path, include\n")
+        file.write("from django.urls import path, include\n\n")
 
         code_to_inject = '''urlpatterns = [
     ### ADMIN URLS ###
@@ -73,8 +73,8 @@ def inject_project_url_imports(urls_file, app_name):
         file.write(code_to_inject)
 
 
-def inject_app_clases_urls(urls_file, app_name, class_names):
-    with open(urls_file, 'w') as file:
+def inject_app_clases_urls_imports(urls_file):
+    with open(urls_file, 'r+') as file:
         file.write("from django.urls import path, include\n")
         file.write("from rest_framework import permissions\n")
         file.write("from rest_framework_extensions.routers import ExtendedSimpleRouter\n")
@@ -83,26 +83,39 @@ def inject_app_clases_urls(urls_file, app_name, class_names):
         file.write("from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView\n")
         file.write("from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView\n\n")
 
-        for class_name in class_names:
-            file.write(f"from .views import {class_name}\n")
 
-        file.write("\nrouter: ExtendedSimpleRouter = ExtendedSimpleRouter()\n")
+def inject_app_clases_urls(urls_file, class_names):
+    with open(urls_file, 'a') as file:
         
-        for class_name in class_names:
-            file.write(f"router.register(r'{class_name}', {class_name.capitalize()}ViewSet)\n")
+        try:
+            for class_name in class_names:
+                file.write(f"from .views import {str(class_name).capitalize()}ViewSet\n")
+        
+            file.write("\nrouter: ExtendedSimpleRouter = ExtendedSimpleRouter()\n")
+            
+            for class_name in class_names:
+                file.write(f"router.register(r'{str(class_name).lower()}', {str(class_name).capitalize()}ViewSet)\n\n")
 
+        except Exception as e:
+            print("Exception")
+            print(e)
+
+
+def inject_app_api_urls(urls_file, app_name):
+
+    with open(urls_file, 'a') as file:
         code_to_inject = '''schema_view = get_schema_view(
-    openapi.Info(
-        title="API Documentation",
-        default_version='v1',
-        description="API documentation for your project",
-        terms_of_service="https://www.example.com/terms/",
-        contact=openapi.Contact(email="contact@example.com"),
-        license=openapi.License(name="BSD License"),
-    ),
-    public=True,
-    permission_classes=(permissions.AllowAny,),
-)
+        openapi.Info(
+            title="API Documentation",
+            default_version='v1',
+            description="API documentation for your project",
+            terms_of_service="https://www.example.com/terms/",
+            contact=openapi.Contact(email="contact@example.com"),
+            license=openapi.License(name="BSD License"),
+        ),
+        public=True,
+        permission_classes=(permissions.AllowAny,),
+    )
 
 urlpatterns = [    
     ### Schema/Docs URLS ###
@@ -115,24 +128,41 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     
-    ### {appname.capitalize()} URLS ###
+    ### APP URLS ###
     path('{appname}/', include(router.urls)),
-    
-]'''.format(appname=app_name)
+        
+    ]'''.format(appname=app_name)
                         
         file.write(code_to_inject)
-
 
 def inject_settings(project_name,app_name):
     # Ruta al archivo settings.py
     settings_path = project_name + '/settings.py'
+    
+    code_to_inject = [
+        "import datetime\n",
+        "from django.conf import settings\n",
+    ]
+
+    # Inyectar las líneas de código
+    with open(settings_path, 'r+') as f:
+        lines = f.readlines()
+        updated_lines = []
+
+        for line in lines:
+            updated_lines.append(line)
+            if line.startswith("from pathlib import Path"):
+                updated_lines.extend(code_to_inject)
+
+        f.seek(0)
+        f.writelines(updated_lines)
 
     # Agregar la nueva app a INSTALLED_APPS
     with open(settings_path, 'r') as f:
         lines = f.readlines()
 
     with open(settings_path, 'w') as f:
-        app_settings_name = "{}.apps.{}Config".format(app_name,app_name.capitalize()) 
+        app_settings_name = "{}.apps.{}Config".format(app_name,str(app_name).capitalize()) 
         for line in lines:
             f.write(line)
             if line.startswith('INSTALLED_APPS = ['):
@@ -142,7 +172,7 @@ def inject_settings(project_name,app_name):
                 f.write(f"    '{'rest_framework_extensions'}',\n")
                 f.write(f"    '{'drf_spectacular'}',\n")
 
-        code_to_inject = '''REST_FRAMEWORK = {
+        code_to_inject = '''\nREST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -193,8 +223,8 @@ def inject_code(project_name,app_name,classes):
     project_urls_file = f'{project_name}/urls.py'  # Ruta al archivo urls.py del projecto
     inject_project_url_imports(project_urls_file, app_name)
     
-    views_file = f'{app_name}/views.py'  # Ruta al archivo views.py
-    inject_app_views_imports(views_file)
+    #views_file = f'{app_name}/views.py'  # Ruta al archivo views.py
+    #inject_app_views_imports(views_file)
 
     serializers_file = f'{app_name}/serializers.py'  # Ruta al archivo serializers.py
     inject_app_serializers_imports(serializers_file)
@@ -207,7 +237,11 @@ def inject_code(project_name,app_name,classes):
     with open(models_path, 'w') as f:
         f.write('from django.db import models\n\n')
         class_names = []
+        i = 0
         for class_name, attributes in classes.items():
+            i+=1
+            class_names.append(class_name)
+            
             # Inyectar en models.py
             model_code = generate_model_code(class_name, attributes)
             f.write(model_code)
@@ -220,15 +254,21 @@ def inject_code(project_name,app_name,classes):
             # Inyectar en views.py
             views_file = f'{app_name}/views.py'  # Ruta al archivo views.py
             inject_view_class_name_imports(views_file, class_name)
-            inject_app_views_imports(views_file)
-
-            # Inyectar en urls.py
+            
             urls_file = f'{app_name}/urls.py'  # Ruta al archivo urls.py
-        
-            class_names.append(class_name)
-        
-        inject_app_clases_urls(urls_file, class_names)
+            # Solo una vez
+            if i == 1:
+                inject_app_views_imports(views_file)
+                inject_app_clases_urls_imports(urls_file)
+            
+            inject_view_class_viewsets(views_file, class_name)
 
+            if i == len(classes.items()):
+                inject_app_clases_urls(urls_file, class_names)
+                inject_app_api_urls(urls_file, app_name)
+
+        # Inyectar en urls.py
+        
 
     # Crear los modelos del admin site
     admin_path = f'{app_name}/admin.py'
@@ -262,10 +302,6 @@ def crear_estructuras_desde_yaml(archivo):
     clases = datos['clases']
 
     print("[SUCCESS] Nombre del projecto:", project_name)
-    print("[SUCCESS] Nombre de la app creada:", app_name)
-    print("[SUCCESS] Clases Creadas")
-    for clase in clases:
-        pprint.pprint(clase)
 
     result = {"project_name":project_name, "app_name":app_name, "clases":clases}
     
@@ -293,6 +329,10 @@ try:
             time.sleep(2)
             inject_code(project_name, app_name, classes)
             time.sleep(2)
+            print("[SUCCESS] Nombre de la app creada:", app_name)
+            print("[SUCCESS] Clases Creadas")
+            for clase in classes:
+                pprint.pprint(clase)
             # Ejecutar las migraciones
     only_migrations()
 
