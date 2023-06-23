@@ -1,14 +1,9 @@
 # Creación de Sistema Web Django con base de datos Postgre con Docker Compose
 
-### 1. Crear las imagenes
-```sh
-$ docker-compose build
-```
-
 ## Autocreacion:
 Configure las clases que desee crear en config.yml como muestra el ejemplo y ejecute:
 ```sh
-$ docker-compose up
+$ docker-compose build && docker-compose up
 ```
 Ingrese a http://localhost:8000/admin
 
@@ -32,6 +27,12 @@ Ingrese a http://localhost:8000/redoc
 En el archivo Dockerfile envie el argumento 0 al script en el entrypoint de la siguiente manera:
 ```sh
 #ENTRYPOINT ["bash", "docker-entrypoint.sh", "0"]
+```
+
+y ejecute 
+
+```sh
+$ docker-compose build && docker-compose up
 ```
 
 ### 1. Crear el sistema en el contenedor Web

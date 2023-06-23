@@ -21,7 +21,7 @@ def login(usuario, password):
     return token
 
 def crear_alumnos(datos_alumnos, token):
-    url = 'http://localhost:8000/api/academico/alumnos/'
+    url = 'http://localhost:8000/api/academico/alumno/'
     headers = {
         'accept': 'application/json',
         'Content-Type': 'application/json',

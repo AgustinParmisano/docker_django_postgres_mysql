@@ -1,8 +1,8 @@
 Dockerfile
 .data/
 cursos/
-#instituto/
-#academico/
+instituto/
+academico/
 manage.py
 db.sqlite3
 config.yml
