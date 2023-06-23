@@ -13,11 +13,11 @@ Password: password
 
 Puede utilizar Swagger para probar la API REST:
 
-Ingrese a http://localhost:8000/swagger
+Ingrese a http://localhost:8000/api/schema/swagger/
 
 Puede visualizar la documentación de la API REST con Redoc:
 
-Ingrese a http://localhost:8000/redoc
+Ingrese a http://localhost:8000/api/schema/swagger/
 
 ---
 
