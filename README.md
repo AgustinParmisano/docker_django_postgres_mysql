@@ -5,7 +5,7 @@
 $ docker-compose build
 ```
 
-## Autocreacion BETA:
+## Autocreacion:
 Configure las clases que desee crear en config.yml como muestra el ejemplo y ejecute:
 ```sh
 $ docker-compose up

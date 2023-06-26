@@ -1,12 +1,32 @@
 import requests
 import json
 
-def crear_alumnos(datos_alumnos):
-    url = 'http://localhost:8000/academico/alumnos/'
+def login(usuario, password):
+
+    url = 'http://localhost:8000/api/token/'
     headers = {
         'accept': 'application/json',
         'Content-Type': 'application/json',
         'X-CSRFToken': '8IDsChX6sCEvZwOylvHUe91aLBeXWX0a9aiaDEBfaN1cCJqFiKV1qyzinGrZrqG1'
+    }
+    data = {
+        'username': 'admin',
+        'password': 'password'
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+
+    token = response.json()["access"]
+
+    return token
+
+def crear_alumnos(datos_alumnos, token):
+    url = 'http://localhost:8000/api/academico/alumnos/'
+    headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '8IDsChX6sCEvZwOylvHUe91aLBeXWX0a9aiaDEBfaN1cCJqFiKV1qyzinGrZrqG1',
+        'Authorization': 'Bearer ' + token
     }
     
     for alumno in datos_alumnos:
@@ -56,5 +76,10 @@ alumnos = [
     # Agrega los datos de los otros alumnos aquí
 ]
 
+# Se autentica
+usuario = "admin"
+password = "password"
+token = login(usuario, password)
+
 # Llamada a la función para crear los alumnos
-crear_alumnos(alumnos)
+crear_alumnos(alumnos, token)

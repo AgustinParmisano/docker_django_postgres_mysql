@@ -30,24 +30,30 @@ def inject_serializer_class_name(serializers_file, class_name):
         file.write(f"        model = {class_name}\n")
         file.write("        fields = '__all__'\n")
 
+def inject_view_class_name_imports(views_file, class_name):
+    with open(views_file, 'a') as file:
+        file.write(f"from .models import {class_name}\n")
+        file.write(f"from .serializers import {class_name}Serializer\n")
 
 def inject_app_views_imports(views_file):
     with open(views_file, 'r+') as file:
         lines = file.readlines()
         for line in lines:
             if line.startswith('from django.shortcuts import render'):
-                file.write(f"from rest_framework import generics\n")
+                file.write("from rest_framework import viewsets\n")
+                file.write("from drf_spectacular.utils import extend_schema, extend_schema_view\n")
+                file.write("@extend_schema_view(\n")
+                file.write('    list=extend_schema(description="list"),\n')
+                file.write('    retrieve=extend_schema(description="retrieve"),\n')
+                file.write('    create=extend_schema(description="create"),\n')
+                file.write('    update=extend_schema(description="list"),\n')
+                file.write('    destroy=extend_schema(description="destroy"),\n')
+                file.write(')\n')
 
 
-def inject_view_class_name(views_file, class_name):
+def inject_view_class_viewsets(views_file, class_name):
     with open(views_file, 'a') as file:
-        file.write(f"from .models import {class_name}\n")
-        file.write(f"from .serializers import {class_name}Serializer\n")
-        file.write(f"\n\nclass {class_name}ListCreateAPIView(generics.ListCreateAPIView):\n")
-        file.write("    queryset = ")
-        file.write(f"{class_name}.objects.all()\n")
-        file.write(f"    serializer_class = {class_name}Serializer\n\n")
-        file.write(f"class {class_name}RetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):\n")
+        file.write(f"\n\nclass {class_name}ViewSet(viewsets.ModelViewSet):\n")
         file.write("    queryset = ")
         file.write(f"{class_name}.objects.all()\n")
         file.write(f"    serializer_class = {class_name}Serializer\n\n")
@@ -55,12 +61,36 @@ def inject_view_class_name(views_file, class_name):
 
 def inject_project_url_imports(urls_file, app_name):
     with open(urls_file, 'w') as file:
-        file.write("from django.contrib import admin\n")
+        file.write("from django.contrib import admin\n")      
+        file.write("from django.urls import path, include\n")
+
+        code_to_inject = '''urlpatterns = [
+    ### ADMIN URLS ###
+    path('admin/', admin.site.urls),
+    path('api/', include(('{appname}.urls','{appname}'), namespace='api-{appname}')),
+]'''.format(appname=app_name)
+                        
+        file.write(code_to_inject)
+
+
+def inject_app_clases_urls(urls_file, app_name, class_names):
+    with open(urls_file, 'w') as file:
         file.write("from django.urls import path, include\n")
         file.write("from rest_framework import permissions\n")
+        file.write("from rest_framework_extensions.routers import ExtendedSimpleRouter\n")
         file.write("from drf_yasg.views import get_schema_view\n")
-        file.write("from drf_yasg import openapi\n\n")
-                
+        file.write("from drf_yasg import openapi\n")
+        file.write("from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView\n")
+        file.write("from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView\n\n")
+
+        for class_name in class_names:
+            file.write(f"from .views import {class_name}\n")
+
+        file.write("\nrouter: ExtendedSimpleRouter = ExtendedSimpleRouter()\n")
+        
+        for class_name in class_names:
+            file.write(f"router.register(r'{class_name}', {class_name.capitalize()}ViewSet)\n")
+
         code_to_inject = '''schema_view = get_schema_view(
     openapi.Info(
         title="API Documentation",
@@ -74,28 +104,26 @@ def inject_project_url_imports(urls_file, app_name):
     permission_classes=(permissions.AllowAny,),
 )
 
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('{appname}/', include('{appname}.urls')),
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+urlpatterns = [    
+    ### Schema/Docs URLS ###
+    path('schema/',SpectacularAPIView.as_view(), name='schema'),
+    path('schema/swagger/',SpectacularSwaggerView.as_view(url_name='{appname}:schema'), name='swagger'),
+    path('schema/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    
+    ### Login JWT URLS ###
+    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    
+    ### {appname.capitalize()} URLS ###
+    path('{appname}/', include(router.urls)),
+    
 ]'''.format(appname=app_name)
                         
         file.write(code_to_inject)
 
 
-def inject_url_class_imports(urls_file, class_name):
-    with open(urls_file, 'a') as file:
-        file.write(f"\nfrom .views import {class_name}ListCreateAPIView, {class_name}RetrieveUpdateDestroyAPIView\n")
-        
-
-def inject_url_class_name(urls_file, class_name):
-    with open(urls_file, 'a') as file:
-        file.write(f"\nurlpatterns.append(path('{class_name.lower()}s/', {class_name}ListCreateAPIView.as_view(), name='{class_name.lower()}-list'))")
-        file.write(f"\nurlpatterns.append(path('{class_name.lower()}s/<str:pk>/', {class_name}RetrieveUpdateDestroyAPIView.as_view(), name='{class_name.lower()}-detail'))")
-
-
-def inject_code(project_name,app_name,classes):
+def inject_settings(project_name,app_name):
     # Ruta al archivo settings.py
     settings_path = project_name + '/settings.py'
 
@@ -111,7 +139,54 @@ def inject_code(project_name,app_name,classes):
                 f.write(f"    '{app_settings_name}',\n")
                 f.write(f"    '{'rest_framework'}',\n")
                 f.write(f"    '{'drf_yasg'}',\n")
+                f.write(f"    '{'rest_framework_extensions'}',\n")
+                f.write(f"    '{'drf_spectacular'}',\n")
 
+        code_to_inject = '''REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ]
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": datetime.timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": False,
+    "UPDATE_LAST_LOGIN": False,
+
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": settings.SECRET_KEY,
+    "VERIFYING_KEY": "",
+    "AUDIENCE": None,
+    "ISSUER": None,
+ 
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "API",
+    "DESCRIPTION": "Description API",
+    "VERSION": "2.0.0",
+    "CONTACT": {
+      "name": "Contacto",
+      "email": "contacto@mail.com",
+      "url": "https://contacto.com",  
+    },
+    "SWAGGER_UI_SETTINGS": {
+        "persistAuthorization": True,
+    },
+    #"SWAGGER_UI_FAVICON_HREF": settings.STATIC_URL + "your_company_favicon.png", # default is swagger favicon
+}'''
+                            
+        f.write(code_to_inject)
+
+def inject_code(project_name,app_name,classes):
+
+    inject_settings(project_name,app_name)
 
     models_path = f'{app_name}/models.py'
 
@@ -131,6 +206,7 @@ def inject_code(project_name,app_name,classes):
 
     with open(models_path, 'w') as f:
         f.write('from django.db import models\n\n')
+        class_names = []
         for class_name, attributes in classes.items():
             # Inyectar en models.py
             model_code = generate_model_code(class_name, attributes)
@@ -143,12 +219,15 @@ def inject_code(project_name,app_name,classes):
 
             # Inyectar en views.py
             views_file = f'{app_name}/views.py'  # Ruta al archivo views.py
-            inject_view_class_name(views_file, class_name)
+            inject_view_class_name_imports(views_file, class_name)
+            inject_app_views_imports(views_file)
 
             # Inyectar en urls.py
             urls_file = f'{app_name}/urls.py'  # Ruta al archivo urls.py
-            inject_url_class_imports(urls_file, class_name)
-            inject_url_class_name(urls_file, class_name)
+        
+            class_names.append(class_name)
+        
+        inject_app_clases_urls(urls_file, class_names)
 
 
     # Crear los modelos del admin site
@@ -196,28 +275,6 @@ def only_migrations():
     subprocess.run(['python', 'manage.py', 'makemigrations'])
     subprocess.run(['python', 'manage.py', 'migrate'])
 
-# Ejemplo de uso
-'''
-app_name = 'academico'
-project_name = "instituto"
-class1 = {'Alumno': {
-    'dni':'CharField(primary_key=True, max_length=30)',
-    'nombre':'CharField(max_length=30)',
-    'apellido':'CharField(max_length=30)',
-    'telefono':'CharField(max_length=30)',
-    'email':'EmailField()'
-}}
-
-class2 = {'Materia': {
-    'id_materia':'IntegerField(primary_key=True)',
-    'nombre':'CharField(max_length=30)',
-    'descripcion':'CharField(max_length=255)',
-    'anio':'IntegerField()',
-    'alumno':'ForeignKey(Alumno, on_delete=models.CASCADE, default=None)'
-}}
-
-classes = {**class1, **class2}
-'''
 
 # Llama a la función y pasa el nombre del archivo YAML como argumento
 data = crear_estructuras_desde_yaml('config.yml')

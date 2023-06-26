@@ -7,3 +7,6 @@ django-mysql
 djangorestframework
 drf-yasg
 yq
+drf-extensions
+drf_spectacular
+djangorestframework-simplejwt
