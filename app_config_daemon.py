@@ -89,12 +89,12 @@ def inject_app_clases_urls(urls_file, class_names):
         
         try:
             for class_name in class_names:
-                file.write(f"from .views import {str(class_name).capitalize()}ViewSet\n")
+                file.write(f"from .views import {str(class_name)}ViewSet\n")
         
             file.write("\nrouter: ExtendedSimpleRouter = ExtendedSimpleRouter()\n")
             
             for class_name in class_names:
-                file.write(f"router.register(r'{str(class_name).lower()}', {str(class_name).capitalize()}ViewSet)\n\n")
+                file.write(f"router.register(r'{str(class_name).lower()}', {str(class_name)}ViewSet)\n\n")
 
         except Exception as e:
             print("Exception")
